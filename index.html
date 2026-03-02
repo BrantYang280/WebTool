@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFINEON DMR | Advanced Product & Process Roadmap v4.1</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* =========================================
+           1. INDUSTRIAL THEME & VARIABLES
+           ========================================= */
+        :root {
+            --bg-dark: #0f172a;       /* Deep Space Blue */
+            --bg-panel: #1e293b;      /* Slate Panel */
+            --bg-input: #020617;      /* Input Field */
+            --border: #334155;        /* Grid color */
+            
+            /* Status Indicators */
+            --st-active: #10b981;     /* Green */
+            --st-qual: #3b82f6;       /* Blue */
+            --st-plan: #f59e0b;       /* Orange */
+            --st-none: #334155;       /* Off */
+            
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --row-height: 58px;       
+            --col-year-width: 160px; 
+            --col-site-width: 45px;
+
+            /* Visual Phases Checksum */
+            --ph-mature-bg: linear-gradient(180deg, #10b981, #059669);
+            --ph-scaling-bg: linear-gradient(180deg, #3b82f6, #2563eb);
+            --ph-pilot-bg: repeating-linear-gradient(45deg, #d97706, #d97706 10px, #b45309 10px, #b45309 20px);
+            --ph-feas-bg: rgba(148,163,184,0.1);
+
+            /* Product Tags */
+            --tag-blue-bg: rgba(59, 130, 246, 0.2); --tag-blue-text: #93c5fd; 
+            --tag-pink-bg: rgba(236, 72, 153, 0.2); --tag-pink-text: #fbcfe8; 
+            --tag-orange-bg: rgba(249, 115, 22, 0.2); --tag-orange-text: #fdba74; 
+            --tag-gray-bg: rgba(148, 163, 184, 0.2); --tag-gray-text: #e2e8f0; 
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
+            font-size: 13px;
+            height: 100vh;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        
+        .mono { font-family: 'Consolas', 'Monaco', monospace; letter-spacing: -0.5px; }
+        .flex { display: flex; } .flex-col { display: flex; flex-direction: column; }
+        .gap-10 { gap: 10px; } .items-center { align-items: center; }
+
+        /* =========================================
+           2. UI COMPONENTS
+           ========================================= */
+        .btn {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: #fff; padding: 6px 12px; cursor: pointer; font-size: 12px;
+            border-radius: 3px; display: inline-flex; align-items: center; gap: 5px;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+        .btn-primary { background: #2563eb; border-color: #2563eb; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-danger { color: #fca5a5; border-color: #7f1d1d; }
+        .btn-danger:hover { background: #7f1d1d; color: #fff; }
+        .btn-sm { padding: 2px 6px; font-size: 11px; }
+
+        input, select {
+            background: var(--bg-input); border: 1px solid #475569;
+            color: white; padding: 8px; font-size: 13px; border-radius: 3px; width: 100%;
+        }
+        .pkg-tag {
+            font-size: 10px; padding: 1px 6px; border-radius: 4px;
+            border: 1px solid; display: inline-flex; margin-right: 4px; margin-bottom: 2px;
+            font-weight: 600; text-transform: uppercase;
+        }
+        .c-blue { background: var(--tag-blue-bg); color: var(--tag-blue-text); border-color: #2563eb; }
+        .c-pink { background: var(--tag-pink-bg); color: var(--tag-pink-text); border-color: #db2777; }
+        .c-orange { background: var(--tag-orange-bg); color: var(--tag-orange-text); border-color: #ea580c; }
+        .c-gray { background: var(--tag-gray-bg); color: var(--tag-gray-text); border-color: #64748b; }
+
+        /* =========================================
+           3. LAYOUT STRUCTURE
+           ========================================= */
+        .toolbar {
+            height: 50px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+            padding: 0 15px; display: flex; align-items: center; justify-content: space-between;
+            z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .workspace { flex: 1; overflow: auto; padding: 15px; position: relative; }
+        
+        /* The container we want to capture (Auto width/height) */
+        #roadmap-canvas { 
+            background: var(--bg-dark); 
+            padding: 10px; 
+            min-width: fit-content;
+            padding-bottom: 20px; 
+        }
+
+        /* Grid System */
+        .timeline-grid { display: flex; flex-direction: column; border: 1px solid var(--border); min-width: 1000px; background: var(--bg-panel); }
+        
+        .grid-header {
+            display: flex; height: 36px; background: #020617;
+            border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5;
+        }
+        .gh-cell {
+            display: flex; align-items: center; justify-content: center;
+            border-right: 1px solid var(--border); font-weight: 600; color: var(--text-dim);
+        }
+        .gc-info { width: 380px; justify-content: flex-start; padding-left: 10px; }
+        .gc-site { width: var(--col-site-width); font-size: 10px; writing-mode: vertical-rl; text-orientation: mixed; padding:5px 0;}
+        .gc-year { width: var(--col-year-width); border-right: 1px dashed var(--border); font-family: monospace; }
+        .grid-row { display: flex; border-bottom: 1px solid var(--bg-dark); height: var(--row-height); position: relative; }
+        .grid-row:hover { background: #232e42; }
+
+        .info-cell {
+            width: 380px; padding: 4px 10px; border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .item-name { font-weight: 600; font-size: 13px; color: #60a5fa; cursor: pointer; display: block; margin-bottom: 3px;}
+        .tag-row { display: flex; flex-wrap: wrap; margin-bottom: 3px; }
+        .process-sub { font-size: 10px; color: var(--text-dim); font-family: monospace; opacity: 0.8; }
+
+        .site-cell {
+            width: var(--col-site-width); border-right: 1px solid #1e293b;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.15);
+        }
+        /* LED Indicators */
+        .led { width: 10px; height: 10px; border-radius: 50%; background: var(--st-none); border:1px solid transparent; }
+        .led.active { background: var(--st-active); box-shadow: 0 0 6px var(--st-active); }
+        .led.qual { background: var(--st-qual); }
+        .led.plan { border: 2px solid var(--st-plan); background: transparent; width: 8px; height: 8px; }
+
+        /* Timeline Bar */
+        .track-cell {
+            flex: 1; position: relative;
+            background: repeating-linear-gradient(90deg, transparent, transparent calc(var(--col-year-width) - 1px), #334155 calc(var(--col-year-width) - 1px), #334155 var(--col-year-width));
+        }
+        .time-bar {
+            position: absolute; top: 15px; height: 26px; border-radius: 3px; padding: 0 8px;
+            font-size: 11px; white-space: nowrap; overflow: hidden; display: flex; align-items: center;
+            color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.5); cursor: pointer; z-index: 2;
+        }
+        /* Phases */
+        .ph-feasibility { border: 1px dashed #94a3b8; color: #cbd5e1; background: var(--ph-feas-bg); }
+        .ph-pilot { background: var(--ph-pilot-bg); border: 1px solid #f59e0b; }
+        .ph-scaling { background: var(--ph-scaling-bg); border: 1px solid #60a5fa; }
+        .ph-mature { background: var(--ph-mature-bg); border: 1px solid #34d399; }
+
+        /* =========================================
+           4. FOOTER LEGEND
+           ========================================= */
+        .legend-bar {
+            margin-top: 15px;
+            padding: 15px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 40px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        .legend-sect { display: flex; flex-direction: column; gap: 8px; }
+        .legend-title { font-weight:700; color:white; margin-bottom:4px; text-transform: uppercase; font-size:10px; letter-spacing:0.5px; }
+        .l-item { display: flex; align-items: center; gap: 8px; }
+        .l-box { width: 16px; height: 16px; border-radius: 2px; }
+
+        /* =========================================
+           5. MODALS
+           ========================================= */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(2px);
+            z-index: 100; display: none; align-items: center; justify-content: center;
+        }
+        .modal {
+            background: var(--bg-panel); border: 1px solid var(--border);
+            width: 700px; max-height: 90vh; display: flex; flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+        .modal-head {
+            padding: 12px 20px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.03);
+            display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 15px;
+        }
+        .modal-body { padding: 20px; overflow-y: auto; }
+        .checkbox-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 5px; }
+        .chk-item { 
+            display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--border); 
+            border-radius: 3px; background: rgba(255,255,255,0.02); font-size: 11px;
+        }
+        /* Config Specific */
+        .cfg-group { border: 1px solid var(--border); background: var(--bg-input); border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+        .cfg-group-header { padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .cfg-group-title { font-weight: 600; font-size: 13px; }
+        .cfg-group-body { padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div style="font-weight:700; font-size:16px; color:white; display:flex; align-items:center;">
+             <span style="color:#2563eb; margin-right:5px">◆</span> INFINEON DMR <span style="font-weight:300; opacity:0.6; margin-left:8px">Visual Roadmap</span>
+        </div>
+        <div style="display:flex; gap:8px">
+            <button class="btn" onclick="openConfigModal()">⚙️ Config</button>
+            <span style="width:1px; background:var(--border); margin:0 5px"></span>
+            <button class="btn btn-primary" onclick="openItemModal()">+ Item</button>
+            <button class="btn" onclick="document.getElementById('fileIn').click()">Import</button>
+            
+            <!-- EXPORT ACTIONS -> Using Specific Functions -->
+            <button class="btn" onclick="exportData()">Export JSON</button>
+            <button class="btn" onclick="captureScreenshot()">📷 Screenshot</button>
+        </div>
+    </div>
+    <input type="file" id="fileIn" hidden onchange="importData(this)" accept=".json">
+
+    <!-- MAIN WORKSPACE -->
+    <div class="workspace">
+        <!-- This wrapper #roadmap-canvas will be captured -->
+        <div id="roadmap-canvas">
+            
+            <!-- GRID SYSTEM -->
+            <div id="gridHeader" class="grid-header">
+                <!-- JS Populated -->
+            </div>
+            <div id="gridBody" class="timeline-grid" style="border-top:none">
+                <!-- JS Populated -->
+            </div>
+
+            <!-- FOOTER LEGEND (Added as requested) -->
+            <div class="legend-bar">
+                
+                <!-- Section 1: Phase -->
+                <div class="legend-sect">
+                    <div class="legend-title">Tech Phase (Visual Style)</div>
+                    <div class="l-item">
+                        <div class="l-box ph-feasibility"></div> Feasibility (In Research)
+                    </div>
+                    <div class="l-item">
+                        <div class="l-box ph-pilot"></div> Pilot / Risk Production (Ramp)
+                    </div>
+                    <div class="l-item">
+                        <div class="l-box ph-scaling"></div> Scaling (Vol. Growth)
+                    </div>
+                    <div class="l-item">
+                        <div class="l-box ph-mature"></div> Mature / POR (Stable)
+                    </div>
+                </div>
+
+                <div style="width:1px; background:#334155"></div>
+
+                <!-- Section 2: Deployment Status -->
+                <div class="legend-sect">
+                    <div class="legend-title">Factory Deployment Status</div>
+                    <div class="l-item">
+                        <div class="led active" style="width:14px; height:14px"></div> Active / POR
+                    </div>
+                    <div class="l-item">
+                        <div class="led qual" style="width:14px; height:14px"></div> Qual / NPI
+                    </div>
+                    <div class="l-item">
+                        <div class="led plan" style="width:12px; height:12px"></div> Planned / Evaluation
+                    </div>
+                    <div class="l-item">
+                        <div class="led" style="width:14px; height:14px"></div> Not Applicable
+                    </div>
+                </div>
+            </div>
+            <!-- End Footer -->
+
+        </div>
+    </div>
+
+    <!-- MODALS (Hidden by default) -->
+    <!-- 1. Config Modal -->
+    <div id="configModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-head"><span>System Configuration</span> <button class="btn btn-sm" onclick="closeModal('configModal')">✕</button></div>
+            <div class="modal-body">
+                <!-- Sites -->
+                <h4>GLOBAL SITES</h4>
+                <div class="flex gap-10" style="margin-bottom:10px">
+                    <input id="newSiteCode" placeholder="Code (e.g. WUX)" style="width:80px">
+                    <input id="newSiteName" placeholder="Full Name">
+                    <button class="btn btn-primary" onclick="addSite()">Add</button>
+                </div>
+                <div id="siteList" class="flex gap-10" style="flex-wrap:wrap; margin-bottom:20px"></div>
+                <!-- Products -->
+                <h4>PRODUCT MATRIX</h4>
+                <div class="flex gap-10" style="margin-bottom:10px">
+                    <input id="newCatName" placeholder="Category Name">
+                    <select id="newCatColor" style="width:100px"><option value="blue">Blue</option><option value="pink">Pink</option><option value="orange">Orange</option><option value="gray">Gray</option></select>
+                    <button class="btn btn-primary" onclick="addCategory()">+ Cat</button>
+                </div>
+                <div id="categoryContainer"></div>
+            </div>
+            <div class="modal-head" style="justify-content:flex-end"><button class="btn btn-primary" onclick="saveConfigAndReload()">Save & Reload</button></div>
+        </div>
+    </div>
+
+    <!-- 2. Item Edit Modal -->
+    <div id="itemModal" class="modal-overlay">
+        <div class="modal" style="width:800px">
+            <div class="modal-head"><span id="itemModalTitle">Item Details</span><button class="btn btn-sm" onclick="closeModal('itemModal')">✕</button></div>
+            <div class="modal-body">
+                <input type="hidden" id="inpId">
+                <div class="flex gap-10" style="margin-bottom:15px">
+                    <div style="flex:2"> <label>TECHNOLOGY NAME</label> <input id="inpName"> </div>
+                </div>
+                <div class="flex gap-10" style="margin-bottom:15px">
+                     <div style="flex:2"> <label>PROCESS STEP</label> <select id="inpProcess"></select> </div>
+                    <div style="flex:1"> <label>PHASE</label> <select id="inpPhase"><option value="feasibility">Feasibility</option><option value="pilot">Pilot</option><option value="scaling">Scaling</option><option value="mature">Mature</option></select> </div>
+                    <div style="flex:1"> <label>START</label> <input type="month" id="inpStart"> </div>
+                    <div style="flex:1"> <label>END</label> <input type="month" id="inpEnd"> </div>
+                </div>
+                <div class="cfg-group"><div class="cfg-group-header"><span>APPLICABLE PACKAGES</span></div><div class="cfg-group-body" id="pkgSelectorContainer" style="max-height:150px; overflow-y:auto"></div></div>
+                <div class="cfg-group"><div class="cfg-group-header"><span>FACTORY STATUS</span></div><div class="cfg-group-body" id="siteStatusInputs"></div></div>
+            </div>
+            <div class="modal-head" style="justify-content:space-between">
+                <button class="btn btn-danger" onclick="deleteItem()">Delete</button>
+                <button class="btn btn-primary" onclick="saveItem()">Save</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    /* =========================================
+       DATA & CONFIG
+       ========================================= */
+    const PROCESS_LIST = [
+        "Backgrinding / Wafer Mount", "Wafer Dicing (Saw/Laser)", "Die Attach (Epoxy/Film)",
+        "Sintering / Soldering", "Wire Bonding (Al/Cu)", "Flip Chip / Underfill","Washing","X-Ray","Break Box","PIN Assembly","Potting",
+        "Molding (Transfer)", "Molding (Compression)", "Plating / Deflash",
+        "Trim & Form", "Marking (Laser)", "Final Test",
+        "System Level Test (SLT)", "Burn-in / Reliability", "Packing / Labeling"
+    ];
+
+    let config = {
+        startYear: 2026, endYear: 2030,
+        sites: [
+            { code: 'WUX', name: 'Wuxi' }, { code: 'MAL', name: 'Melaka' }, { code: 'WAR', name: 'Warstein' },
+            { code: 'BKK', name: 'Bangkok' }, { code: 'BAT', name: 'Batam' }
+        ],
+        categories: [
+            { name: "Discrete", color: "blue", packages: ["TO-247", "TO-220", "TO-263", "DPAK"] },
+            { name: "Modules", color: "pink", packages: ["IGBT-M1", "Econo", "PrimePACK"] },
+            { name: "Wafer", color: "orange", packages: ["8-inch", "12-inch", "KGD"] }
+        ]
+    };
+
+    let items = [
+        {
+            id: '1', name: 'SiC Sintering G2', process: 'Sintering / Soldering', phase: 'pilot',
+            start: '2026-02', end: '2027-06', packages: ['TO-247', 'TO-263'], sites: { 'WUX': 'active', 'MAL': 'plan' }
+        },
+        {
+            id: '2', name: 'Auto-Molding Line 4', process: 'Molding (Transfer)', phase: 'mature',
+            start: '2026-01', end: '2028-01', packages: ['IGBT-M1'], sites: { 'WUX': 'active', 'BKK': 'qual' }
+        }
+    ];
+
+    window.onload = function() {
+        if(localStorage.getItem('fab_conf_v4')) config = JSON.parse(localStorage.getItem('fab_conf_v4'));
+        if(localStorage.getItem('fab_data_v4')) items = JSON.parse(localStorage.getItem('fab_data_v4'));
+        renderGrid();
+    };
+    function saveAll() {
+        localStorage.setItem('fab_conf_v4', JSON.stringify(config));
+        localStorage.setItem('fab_data_v4', JSON.stringify(items));
+    }
+
+    /* =========================================
+       CORE RENDERER
+       ========================================= */
+    function renderGrid() {
+        // Headers
+        const h = document.getElementById('gridHeader');
+        h.innerHTML = `<div class="gh-cell gc-info">PROJECT & PACKAGE SCOPE</div>`;
+        config.sites.forEach(s => h.innerHTML += `<div class="gh-cell gc-site mono">${s.code}</div>`);
+        for(let y=config.startYear; y<=config.endYear; y++) h.innerHTML += `<div class="gh-cell gc-year">${y}</div>`;
+
+        // Body with Sort
+        const b = document.getElementById('gridBody');
+        b.innerHTML = '';
+        items.sort((a,b) => PROCESS_LIST.indexOf(a.process) - PROCESS_LIST.indexOf(b.process));
+
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'grid-row';
+            
+            // Info
+            let tagsHtml = '';
+            if(item.packages) {
+                item.packages.forEach(pkg => {
+                    let color = 'gray'; 
+                    config.categories.forEach(cat => { if(cat.packages.includes(pkg)) color = cat.color; });
+                    tagsHtml += `<span class="pkg-tag c-${color}">${pkg}</span>`;
+                });
+            }
+            row.innerHTML = `<div class="info-cell">
+                    <span class="item-name" onclick="openItemModal('${item.id}')">${item.name}</span>
+                    <div class="tag-row">${tagsHtml}</div>
+                    <span class="process-sub">${item.process}</span>
+                </div>`;
+
+            // Sites
+            config.sites.forEach(s => {
+                const st = (item.sites && item.sites[s.code]) || 'none';
+                row.innerHTML += `<div class="site-cell"><div class="led ${st}" title="${st}"></div></div>`;
+            });
+
+            // Timeline
+            const track = document.createElement('div');
+            track.className = 'track-cell';
+            const pos = calcPos(item.start, item.end);
+            const bar = document.createElement('div');
+            bar.className = `time-bar ph-${item.phase}`;
+            bar.style.left = pos.left + "px";
+            bar.style.width = pos.width + "px";
+            bar.innerHTML = item.name;
+            bar.onclick = () => openItemModal(item.id);
+            track.appendChild(bar);
+            row.appendChild(track);
+            b.appendChild(row);
+        });
+    }
+
+    function calcPos(sStr, eStr) {
+        if(!sStr || !eStr) return {left:0, width:0};
+        const pxYr = 160; 
+        const gs = new Date(`${config.startYear}-01-01`);
+        const s = new Date(sStr); const e = new Date(eStr);
+        const om = (s.getFullYear() - gs.getFullYear())*12 + (s.getMonth() - gs.getMonth());
+        const dm = (e.getFullYear() - s.getFullYear())*12 + (e.getMonth() - s.getMonth());
+        return { left: Math.max(0, om*(pxYr/12)), width: Math.max(20, dm*(pxYr/12)) };
+    }
+
+    /* =========================================
+       MODAL LOGIC
+       ========================================= */
+    function openItemModal(id=null) {
+        document.getElementById('itemModal').style.display = 'flex';
+        const pSel = document.getElementById('inpProcess');
+        pSel.innerHTML = PROCESS_LIST.map(p => `<option>${p}</option>`).join('');
+        
+        // Matrix Render per Config
+        const mx = document.getElementById('pkgSelectorContainer');
+        mx.innerHTML = '';
+        config.categories.forEach(cat => {
+            mx.innerHTML += `<div style="margin-bottom:8px">
+                <div style="font-size:10px;font-weight:bold;color:#94a3b8;border-bottom:1px solid #334155">${cat.name}</div>
+                <div class="checkbox-grid">${cat.packages.map(p=>
+                    `<label class="chk-item"><input type="checkbox" class="pkg-chk" value="${p}"><span class="pkg-tag c-${cat.color}">${p}</span></label>`
+                ).join('')}</div></div>`;
+        });
+        
+        // Sites Inputs
+        const si = document.getElementById('siteStatusInputs');
+        si.innerHTML = config.sites.map(s => 
+            `<div style="display:inline-block;width:70px;margin-right:5px;margin-bottom:5px;text-align:center"><span style="font-size:10px">${s.code}</span><select id="st_${s.code}" style="padding:2px"><option value="none">-</option><option value="plan">Plan</option><option value="qual">Qual</option><option value="active">Active</option></select></div>`
+        ).join('');
+
+        if(id) {
+            const item = items.find(i=>i.id===id);
+            document.getElementById('inpId').value=item.id; document.getElementById('inpName').value=item.name;
+            document.getElementById('inpProcess').value=item.process; document.getElementById('inpPhase').value=item.phase;
+            document.getElementById('inpStart').value=item.start; document.getElementById('inpEnd').value=item.end;
+            if(item.packages) document.querySelectorAll('.pkg-chk').forEach(c => c.checked = item.packages.includes(c.value));
+            if(item.sites) config.sites.forEach(s => { if(item.sites[s.code]) document.getElementById(`st_${s.code}`).value = item.sites[s.code]; });
+        } else {
+            document.getElementById('inpId').value=''; document.getElementById('inpName').value='';
+            document.querySelectorAll('.pkg-chk').forEach(c=>c.checked=false);
+            document.querySelectorAll('select[id^="st_"]').forEach(s=>s.value='none');
+            document.getElementById('inpStart').value=`${config.startYear}-01`; document.getElementById('inpEnd').value=`${config.startYear+1}-01`;
+        }
+    }
+    function saveItem() {
+        const id=document.getElementById('inpId').value||'I'+Date.now();
+        const pkgs=[]; document.querySelectorAll('.pkg-chk:checked').forEach(c=>pkgs.push(c.value));
+        const sites={}; config.sites.forEach(s=>{ const v=document.getElementById(`st_${s.code}`).value; if(v!=='none') sites[s.code]=v; });
+        const obj = {
+            id, name:document.getElementById('inpName').value, process:document.getElementById('inpProcess').value,
+            phase:document.getElementById('inpPhase').value, start:document.getElementById('inpStart').value,
+            end:document.getElementById('inpEnd').value, packages:pkgs, sites
+        };
+        const idx = items.findIndex(i=>i.id===id); (idx>=0)?items[idx]=obj:items.push(obj);
+        saveAll(); closeModal('itemModal'); renderGrid();
+    }
+    function deleteItem(){ const id=document.getElementById('inpId').value; if(id){ items=items.filter(i=>i.id!==id); saveAll(); closeModal('itemModal'); renderGrid(); }}
+
+    /* =========================================
+       CONFIG LOGIC
+       ========================================= */
+    function openConfigModal() {
+        document.getElementById('configModal').style.display='flex';
+        const sl = document.getElementById('siteList');
+        sl.innerHTML = config.sites.map((s,i)=>`<div style="background:#0f172a;padding:5px;border:1px solid #334155;border-radius:3px;font-size:11px"><span style="color:#60a5fa">${s.code}</span> ${s.name} <span style="color:red;cursor:pointer" onclick="config.sites.splice(${i},1);openConfigModal()">×</span></div>`).join('');
+        const cc = document.getElementById('categoryContainer');
+        cc.innerHTML = config.categories.map((c,i)=>`
+            <div class="cfg-group"><div class="cfg-group-header"><span style="color:var(--tag-${c.color}-text)">${c.name}</span> <button class="btn btn-sm btn-danger" onclick="config.categories.splice(${i},1);openConfigModal()">Del</button></div>
+            <div class="cfg-group-body">${c.packages.map((p,pi)=>`<span class="pkg-tag c-${c.color}">${p} <span style="cursor:pointer" onclick="config.categories[${i}].packages.splice(${pi},1);openConfigModal()">×</span></span>`).join('')}
+            <div style="display:flex"><input id="np_${i}" placeholder="Add pkg" style="width:60px;padding:1px;font-size:10px"><button class="btn btn-sm" onclick="if(document.getElementById('np_${i}').value){config.categories[${i}].packages.push(document.getElementById('np_${i}').value);openConfigModal()}">+</button></div></div></div>
+        `).join('');
+    }
+    function addSite(){ const c=document.getElementById('newSiteCode').value.toUpperCase(),n=document.getElementById('newSiteName').value; if(c&&n) {config.sites.push({code:c,name:n}); openConfigModal();} }
+    function addCategory(){ const n=document.getElementById('newCatName').value, c=document.getElementById('newCatColor').value; if(n){config.categories.push({name:n,color:c,packages:[]}); openConfigModal();} }
+    function saveConfigAndReload(){ saveAll(); location.reload(); }
+    
+    /* =========================================
+       UTILS: SCREENSHOT & EXPORT
+       ========================================= */
+    function closeModal(id){ document.getElementById(id).style.display='none'; }
+    function exportData(){
+        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({config,items},null,2)],{type:'application/json'}));
+        a.download='roadmap.json'; a.click();
+    }
+    function importData(e){ const r=new FileReader(); r.onload=x=>{const d=JSON.parse(x.target.result); if(d.config)config=d.config; if(d.items)items=d.items; saveConfigAndReload();}; r.readAsText(e.files[0]); }
+    
+    // UPDATED SCREENSHOT FUNCTION
+    function captureScreenshot() {
+        // Target the wrapper that includes Header, Grid, AND Legend
+        const element = document.getElementById("roadmap-canvas");
+        
+        html2canvas(element, {
+            scale: 2, // High resolution
+            backgroundColor: "#0f172a", // Ensure theme matches
+            useCORS: true
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `Roadmap_Capture_${new Date().toISOString().slice(0,10)}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }).catch(err => {
+            console.error("Screenshot failed:", err);
+            alert("Screenshot failed. See console.");
+        });
+    }
+
+</script>
+</body>
+</html>
